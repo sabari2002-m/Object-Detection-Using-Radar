@@ -1,0 +1,79 @@
+#include <Servo.h>
+
+// Pin definitions
+const int TriggerPin = 8;
+const int EchoPin = 9;
+const int ServoPin = 10;
+
+// Servo configuration
+const int startingAngle = 15;
+const int minimumAngle = 15;
+const int maximumAngle = 165;
+const int rotationSpeed = 1;
+
+Servo radarServo;
+
+void setup() {
+  // Initialize pins
+  pinMode(TriggerPin, OUTPUT);
+  pinMode(EchoPin, INPUT);
+  
+  // Attach servo and set initial position
+  radarServo.attach(ServoPin);
+  radarServo.write(startingAngle);
+  
+  // Initialize serial communication
+  Serial.begin(9600);
+  
+  delay(2000); // Allow servo to reach initial position
+}
+
+void loop() {
+  static int servoAngle = startingAngle;
+  static int rotateDirection = rotationSpeed;
+  
+  // Move servo to current angle
+  radarServo.write(servoAngle);
+  delay(30); // Allow servo to reach position
+  
+  // Calculate distance and send data
+  int distance = calculateDistance();
+  sendSerialData(servoAngle, distance);
+  
+  // Update angle for next iteration
+  servoAngle += rotateDirection;
+  
+  // Reverse direction at limits
+  if (servoAngle <= minimumAngle || servoAngle >= maximumAngle) {
+    rotateDirection = -rotateDirection;
+  }
+}
+
+int calculateDistance() {
+  // Send ultrasonic pulse
+  digitalWrite(TriggerPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TriggerPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TriggerPin, LOW);
+  
+  // Read echo duration
+  long duration = pulseIn(EchoPin, HIGH);
+  
+  // Calculate distance in centimeters
+  int distance = duration * 0.034 / 2;
+  
+  // Limit distance to reasonable range
+  if (distance > 200 || distance < 0) {
+    distance = 200;
+  }
+  
+  return distance;
+}
+
+void sendSerialData(int angle, int distance) {
+  Serial.print(angle);
+  Serial.print(",");
+  Serial.print(distance);
+  Serial.print(".");
+}
